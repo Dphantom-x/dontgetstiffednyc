@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Don't Get Stiffed">
+  <rect width="64" height="64" fill="#141a46"/>
+  <text x="32" y="47" text-anchor="middle" fill="#ff48b0"
+        font-family="Archivo Black, Helvetica, Arial, sans-serif"
+        font-size="46" font-weight="900">$</text>
+</svg>
