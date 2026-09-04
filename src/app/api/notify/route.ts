@@ -46,7 +46,9 @@ export async function POST(request: Request) {
 
   const endpoint = process.env.NOTIFY_WEBHOOK_URL;
   if (!endpoint) {
-    console.warn("[notify] NOTIFY_WEBHOOK_URL is not set; refusing signup for", email.trim());
+    // Deliberately does not log the address. The site promises no tracking,
+    // and server logs are not a place to keep someone's email.
+    console.warn("[notify] NOTIFY_WEBHOOK_URL is not set; signup refused");
     return NextResponse.json(
       { error: "Signups are not switched on yet. Try again shortly." },
       { status: 503 },
