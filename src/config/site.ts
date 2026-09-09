@@ -24,8 +24,12 @@ export const siteConfig = {
     "Free legal armor for NYC creators. Panic buttons, contract templates and your rights under the Freelance Isn't Free Act. No ads, no signups, yours to copy.",
   locale: "en_US",
 
-  /** "prelaunch" serves the holding page at /, "live" serves the full site. */
-  stage: (stageFromEnv === "prelaunch" ? "prelaunch" : "live") as SiteStage,
+  /**
+   * "prelaunch" serves the holding page at /, "live" serves the full site.
+   * The gate is the default: the full site ships only when a deployment opts
+   * in with NEXT_PUBLIC_SITE_STAGE=live.
+   */
+  stage: (stageFromEnv === "live" ? "live" : "prelaunch") as SiteStage,
 
   /** Halftone print grain over the whole page. */
   grain: process.env.NEXT_PUBLIC_DISABLE_GRAIN !== "true",

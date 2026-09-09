@@ -103,14 +103,19 @@ for local development.
 | Variable                  | Default                  | Effect                                     |
 | ------------------------- | ------------------------ | ------------------------------------------ |
 | `NEXT_PUBLIC_SITE_URL`    | `https://getpaidnyc.org` | Canonical URL for metadata and the sitemap |
-| `NEXT_PUBLIC_SITE_STAGE`  | `live`                   | `prelaunch` serves the holding page at `/` |
+| `NEXT_PUBLIC_SITE_STAGE`  | `prelaunch`              | `live` serves the full site at `/`         |
 | `NEXT_PUBLIC_HIDE_WORKSHOP` | unset                  | `true` hides the workshop section          |
 | `NEXT_PUBLIC_DISABLE_GRAIN` | unset                  | `true` removes the halftone overlay        |
 | `NOTIFY_WEBHOOK_URL`      | unset                    | Where pre-launch signups are forwarded     |
 
-**Before switching `NEXT_PUBLIC_SITE_STAGE` to `prelaunch`, set
-`NOTIFY_WEBHOOK_URL`.** There is no database here on purpose. With no endpoint
-configured, `/api/notify` returns a 503 and the form says so, rather than
+**The site defaults to the pre-launch gate.** `/` serves the holding page and
+robots.txt blocks crawlers until a deployment sets
+`NEXT_PUBLIC_SITE_STAGE=live`. That variable is inlined at build time, so
+changing it on the host takes effect on the next build, not immediately.
+
+**The gate needs `NOTIFY_WEBHOOK_URL` to collect anything.** There is no
+database here on purpose. With no endpoint configured, `/api/notify` returns a
+503 and the form tells the visitor signups are not switched on, rather than
 showing a confirmation for a list that does not exist. Point it at any provider
 that accepts a JSON `POST` of `{ email, source }`.
 
