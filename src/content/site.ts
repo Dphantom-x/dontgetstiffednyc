@@ -314,7 +314,7 @@ export const gate = {
     },
   ],
   zineNote: {
-    before: "Scanned the QR off the zine? You're early, the paper version is already out there. ",
+    before: "Printing soon: ",
     strong: "500 free copies around Brooklyn.",
   },
 };

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Stamp } from "@/components/ui/Stamp";
-import { siteConfig } from "@/config/site";
 import { gate, masthead } from "@/content/site";
 
 type Status = "idle" | "sending" | "done" | "error";
@@ -154,13 +153,6 @@ export function PrelaunchGate() {
           {gate.zineNote.before}
           <strong className="text-pink">{gate.zineNote.strong}</strong>
         </p>
-      </div>
-
-      <div className="border-t-2 border-navy">
-        <div className="mx-auto flex w-full max-w-[620px] flex-wrap justify-between gap-x-5.5 gap-y-2.5 px-6 pt-4.5 pb-6.5 font-mono text-[10.5px] tracking-[0.08em] uppercase">
-          <span>CC BY-SA 4.0 · launching {siteConfig.launchWindow}</span>
-          <span className="opacity-60">no ads · no signups · no tracking</span>
-        </div>
       </div>
     </div>
   );
