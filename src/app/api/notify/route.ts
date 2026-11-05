@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 
 /**
- * Launch-notification signup for the pre-launch gate.
+ * Mailing-list signup for the pre-launch gate.
  *
- * There is deliberately no database here. Set NOTIFY_WEBHOOK_URL to any list
- * provider or form endpoint that accepts a JSON POST, and addresses are handed
- * straight to it. With no endpoint configured the route refuses the signup
- * rather than showing a confirmation for a list that does not exist.
+ * There is deliberately no database here. Addresses are handed straight to a
+ * list provider, configured one of two ways:
+ *
+ * - NOTIFY_FORM_URL: a provider's public signup-form action (Kit, Brevo,
+ *   MailerLite). The address is posted the way the provider's own embed form
+ *   posts it, under NOTIFY_FORM_EMAIL_FIELD (default "email_address", Kit's name).
+ * - NOTIFY_WEBHOOK_URL: any endpoint that accepts a JSON POST of { email, source }.
+ *
+ * With neither configured the route refuses the signup rather than showing a
+ * confirmation for a list that does not exist.
  */
 
 export const runtime = "nodejs";
@@ -27,6 +33,50 @@ function throttled(key: string): boolean {
   return hits.length > MAX_PER_WINDOW;
 }
 
+/** Hands the address to the configured provider. null means none is configured. */
+async function forward(email: string): Promise<boolean | null> {
+  const formUrl = process.env.NOTIFY_FORM_URL;
+  if (formUrl) {
+    const field = process.env.NOTIFY_FORM_EMAIL_FIELD || "email_address";
+    const response = await fetch(formUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      },
+      body: new URLSearchParams({ [field]: email }),
+    });
+    if (!response.ok) {
+      console.error("[notify] signup form responded", response.status);
+      return false;
+    }
+    // Some providers answer 200 and put the failure in the body instead.
+    const body: unknown = await response.json().catch(() => null);
+    const status = (body as { status?: unknown } | null)?.status;
+    if (status === "failed" || status === "error") {
+      console.error("[notify] signup form rejected the address");
+      return false;
+    }
+    return true;
+  }
+
+  const webhook = process.env.NOTIFY_WEBHOOK_URL;
+  if (webhook) {
+    const response = await fetch(webhook, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ email, source: "prelaunch-gate" }),
+    });
+    if (!response.ok) {
+      console.error("[notify] provider responded", response.status);
+      return false;
+    }
+    return true;
+  }
+
+  return null;
+}
+
 export async function POST(request: Request) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   if (throttled(ip)) {
@@ -44,32 +94,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "That doesn't look like an email address." }, { status: 400 });
   }
 
-  const endpoint = process.env.NOTIFY_WEBHOOK_URL;
-  if (!endpoint) {
-    // Deliberately does not log the address. The site promises no tracking,
-    // and server logs are not a place to keep someone's email.
-    console.warn("[notify] NOTIFY_WEBHOOK_URL is not set; signup refused");
+  let delivered: boolean | null;
+  try {
+    delivered = await forward(email.trim());
+  } catch (cause) {
+    console.error("[notify] provider unreachable", cause);
+    return NextResponse.json(
+      { error: "That didn't go through. Try again in a minute." },
+      { status: 502 },
+    );
+  }
+
+  if (delivered === null) {
+    // Deliberately does not log the address. Server logs are not a place to
+    // keep someone's email.
+    console.warn("[notify] no signup destination is set; signup refused");
     return NextResponse.json(
       { error: "Signups are not switched on yet. Try again shortly." },
       { status: 503 },
     );
   }
 
-  try {
-    const forwarded = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ email: email.trim(), source: "prelaunch-gate" }),
-    });
-    if (!forwarded.ok) {
-      console.error("[notify] provider responded", forwarded.status);
-      return NextResponse.json(
-        { error: "That didn't go through. Try again in a minute." },
-        { status: 502 },
-      );
-    }
-  } catch (cause) {
-    console.error("[notify] provider unreachable", cause);
+  if (!delivered) {
     return NextResponse.json(
       { error: "That didn't go through. Try again in a minute." },
       { status: 502 },

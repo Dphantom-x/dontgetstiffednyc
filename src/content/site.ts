@@ -295,12 +295,12 @@ export const footer = {
 export const gate = {
   stamp: "Not yet published",
   title: ["Don't", "get", "stiffed"],
-  lead: "Free legal armor for NYC creators: the panic buttons, the contract templates, the workshop dates. Currently in production. No ads, no signups, yours to copy when it lands.",
-  label: "Get one email the day it's live",
+  lead: "Free legal armor for NYC creators: the panic buttons, the contract templates, the workshop dates. Currently in production. No ads, no paywalls, yours to copy when it lands.",
+  label: "Get workshop dates and the zine",
   placeholder: "you@studio.nyc",
   submit: "Tell me →",
   privacy:
-    "One email. At launch. Then we delete the list. No tracking, no partners, no newsletter you have to escape.",
+    "We'll email you workshop dates and the zine when it's out. A few emails a year, unsubscribe anytime, and we never share your address.",
   successKicker: "On the list ✓",
   successTitle: "We'll shout when it's live.",
   successBody: ", that's it, nothing else to do. Meanwhile: go put a payment date in writing.",
