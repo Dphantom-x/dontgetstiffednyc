@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Stamp } from "@/components/ui/Stamp";
+import { siteConfig } from "@/config/site";
 import { gate, masthead } from "@/content/site";
 
 type Status = "idle" | "sending" | "done" | "error";
@@ -71,6 +72,39 @@ export function PrelaunchGate() {
         <p className="mt-6.5 max-w-[460px] text-[clamp(17px,2.4vw,21px)] leading-[1.35] font-semibold text-pretty">
           {gate.lead}
         </p>
+
+        {siteConfig.showWorkshop && (
+          <div
+            className="mt-8 border-[3px] border-navy bg-paper p-5.5 shadow-[6px_6px_0_var(--color-pink)]"
+            style={{ transform: "rotate(-0.4deg)" }}
+          >
+            <p className="eyebrow text-[11px] tracking-[0.18em] text-pink">
+              {gate.workshop.kicker}
+            </p>
+            <p className="headline mt-2.5 text-[clamp(22px,4vw,30px)] leading-none tracking-[-0.025em]">
+              {gate.workshop.title}
+            </p>
+            <p className="mt-2.5 font-mono text-[12px] tracking-[0.08em] uppercase">
+              {gate.workshop.when}
+            </p>
+            <p className="mt-3 text-[15px] leading-[1.45] text-pretty">{gate.workshop.body}</p>
+            {siteConfig.rsvpUrl ? (
+              <a
+                href={siteConfig.rsvpUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ transform: "rotate(-0.8deg)" }}
+                className="headline mt-4.5 inline-flex min-h-[56px] items-center bg-pink px-6 py-4 text-[18px] tracking-[-0.01em] text-navy shadow-[5px_5px_0_var(--color-navy)]"
+              >
+                {gate.workshop.cta}
+              </a>
+            ) : (
+              <p className="mt-4 font-mono text-[11.5px] leading-[1.6] text-pink">
+                {gate.workshop.pending}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mt-8.5 border-t-[3px] border-navy pt-6.5">
           {status === "done" ? (

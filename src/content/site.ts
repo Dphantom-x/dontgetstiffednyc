@@ -301,6 +301,14 @@ export const gate = {
   submit: "Tell me →",
   privacy:
     "We'll email you workshop dates and the zine when it's out. A few emails a year, unsubscribe anytime, and we never share your address.",
+  workshop: {
+    kicker: "First free workshop",
+    title: "Client Email Roast",
+    when: "Wed, Nov 18 · 6–8 PM · Brooklyn",
+    body: "Bring a client email or contract you're unsure about, and leave knowing the red flags and where to file. Free, with food.",
+    cta: "RSVP →",
+    pending: "RSVP opens soon.",
+  },
   successKicker: "On the list ✓",
   successTitle: "We'll shout when it's live.",
   successBody: ", that's it, nothing else to do. Meanwhile: go put a payment date in writing.",

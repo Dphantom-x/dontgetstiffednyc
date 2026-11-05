@@ -106,6 +106,7 @@ for local development.
 | `NEXT_PUBLIC_SITE_STAGE`  | `prelaunch`              | `live` serves the full site at `/`         |
 | `NEXT_PUBLIC_HIDE_WORKSHOP` | unset                  | `true` hides the workshop section          |
 | `NEXT_PUBLIC_DISABLE_GRAIN` | unset                  | `true` removes the halftone overlay        |
+| `NEXT_PUBLIC_RSVP_URL`    | unset                    | The next workshop's RSVP page (Luma)       |
 | `NOTIFY_FORM_URL`         | unset                    | A provider's public signup-form action     |
 | `NOTIFY_FORM_EMAIL_FIELD` | `email_address`          | That form's email field name               |
 | `NOTIFY_WEBHOOK_URL`      | unset                    | Or: a JSON endpoint for signups            |

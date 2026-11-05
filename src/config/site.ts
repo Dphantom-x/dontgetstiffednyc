@@ -37,6 +37,9 @@ export const siteConfig = {
   /** Show the monthly Client Email Roast strip. */
   showWorkshop: process.env.NEXT_PUBLIC_HIDE_WORKSHOP !== "true",
 
+  /** The next workshop's RSVP page (Luma). Unset shows "RSVP opens soon". */
+  rsvpUrl: process.env.NEXT_PUBLIC_RSVP_URL || null,
+
   /** Which triage door is open when someone lands. null = all closed. */
   defaultDoor: null as DoorId | null,
 
