@@ -33,6 +33,17 @@ function throttled(key: string): boolean {
   return hits.length > MAX_PER_WINDOW;
 }
 
+interface IntakePayload {
+  email: string;
+  hasIntake?: boolean;
+  story?: string;
+  isAnonymous?: boolean;
+  fileName?: string;
+  fileSize?: number;
+  fileType?: string;
+  fileBase64?: string;
+}
+
 /** Hands the address to the configured provider. null means none is configured. */
 async function forwardToKit(email: string): Promise<boolean> {
   const apiKey = process.env.KIT_API_KEY;
@@ -61,7 +72,7 @@ async function forwardToKit(email: string): Promise<boolean> {
   }
 }
 
-async function forwardToWebhook(email: string): Promise<boolean> {
+async function forwardToWebhook(payload: IntakePayload): Promise<boolean> {
   const webhook = process.env.NOTIFY_WEBHOOK_URL;
   if (!webhook) return false;
 
@@ -69,7 +80,16 @@ async function forwardToWebhook(email: string): Promise<boolean> {
     const res = await fetch(webhook, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ email, source: "prelaunch-gate" }),
+      body: JSON.stringify({
+        email: payload.email,
+        source: "prelaunch-gate",
+        hasIntake: payload.hasIntake,
+        story: payload.story,
+        isAnonymous: payload.isAnonymous,
+        fileName: payload.fileName,
+        fileType: payload.fileType,
+        fileBase64: payload.fileBase64,
+      }),
       redirect: "follow",
     });
     if (!res.ok) {
@@ -115,7 +135,7 @@ async function forwardToLegacyForm(email: string): Promise<boolean> {
 }
 
 /** Hands the address to all configured providers (Kit, Webhook/Sheets). null means none is configured. */
-async function forward(email: string): Promise<boolean | null> {
+async function forward(payload: IntakePayload): Promise<boolean | null> {
   const hasKit = Boolean(process.env.KIT_API_KEY);
   const hasWebhook = Boolean(process.env.NOTIFY_WEBHOOK_URL);
   const hasLegacyForm = Boolean(process.env.NOTIFY_FORM_URL) && !hasKit;
@@ -125,9 +145,9 @@ async function forward(email: string): Promise<boolean | null> {
   }
 
   const results = await Promise.allSettled([
-    hasKit ? forwardToKit(email) : Promise.resolve(false),
-    hasWebhook ? forwardToWebhook(email) : Promise.resolve(false),
-    hasLegacyForm ? forwardToLegacyForm(email) : Promise.resolve(false),
+    hasKit ? forwardToKit(payload.email) : Promise.resolve(false),
+    hasWebhook ? forwardToWebhook(payload) : Promise.resolve(false),
+    hasLegacyForm ? forwardToLegacyForm(payload.email) : Promise.resolve(false),
   ]);
 
   const kitSuccess = results[0].status === "fulfilled" && results[0].value;
@@ -148,20 +168,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Too many tries. Give it a minute." }, { status: 429 });
   }
 
-  let email: unknown;
+  let body: Record<string, unknown>;
   try {
-    ({ email } = (await request.json()) as { email?: unknown });
+    body = (await request.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: "Send JSON." }, { status: 400 });
   }
 
+  const email = body.email;
   if (typeof email !== "string" || !EMAIL.test(email.trim()) || email.length > 254) {
     return NextResponse.json({ error: "That doesn't look like an email address." }, { status: 400 });
   }
 
+  const payload: IntakePayload = {
+    email: email.trim(),
+    hasIntake: Boolean(body.hasIntake),
+    story: typeof body.story === "string" ? body.story.slice(0, 10_000) : undefined,
+    isAnonymous: body.isAnonymous !== undefined ? Boolean(body.isAnonymous) : true,
+    fileName: typeof body.fileName === "string" ? body.fileName.slice(0, 255) : undefined,
+    fileSize: typeof body.fileSize === "number" ? body.fileSize : undefined,
+    fileType: typeof body.fileType === "string" ? body.fileType.slice(0, 100) : undefined,
+    fileBase64: typeof body.fileBase64 === "string" ? body.fileBase64 : undefined,
+  };
+
   let delivered: boolean | null;
   try {
-    delivered = await forward(email.trim());
+    delivered = await forward(payload);
   } catch (cause) {
     console.error("[notify] provider unreachable", cause);
     return NextResponse.json(
