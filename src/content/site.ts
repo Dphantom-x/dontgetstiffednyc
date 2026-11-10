@@ -310,8 +310,8 @@ export const gate = {
     pending: "RSVP opens soon.",
   },
   successKicker: "On the list ✓",
-  successTitle: "We'll shout when it's live.",
-  successBody: ", that's it, nothing else to do. Meanwhile: go put a payment date in writing.",
+  successTitle: "You're all set!",
+  successBody: "Thanks for signing up! We'll keep you posted on upcoming workshop dates and resources.",
   urgentKicker: "Getting stiffed right now?",
   urgentLead: "Don't wait for us. These two are free and open today.",
   urgentLinks: [

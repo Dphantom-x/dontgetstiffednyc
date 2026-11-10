@@ -120,8 +120,10 @@ export function PrelaunchGate() {
                 {gate.successTitle}
               </p>
               <p className="mt-3 text-[15px] leading-[1.45] text-pretty">
-                {email}
                 {gate.successBody}
+              </p>
+              <p className="mt-2 font-mono text-[12px] opacity-75">
+                Saved: {email}
               </p>
             </div>
           ) : (

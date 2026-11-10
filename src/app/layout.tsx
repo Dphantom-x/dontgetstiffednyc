@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Archivo_Black, Space_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import { Grain } from "@/components/ui/Grain";
 import { siteConfig } from "@/config/site";
 import "./globals.css";
@@ -77,6 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased">
         {siteConfig.grain && <Grain />}
         {children}
+        <Analytics />
       </body>
     </html>
   );
