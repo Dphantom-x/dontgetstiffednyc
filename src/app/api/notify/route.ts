@@ -34,26 +34,62 @@ function throttled(key: string): boolean {
 }
 
 /** Hands the address to the configured provider. null means none is configured. */
-async function forward(email: string): Promise<boolean | null> {
+async function forwardToKit(email: string): Promise<boolean> {
+  const apiKey = process.env.KIT_API_KEY;
+  const formId = process.env.KIT_FORM_ID || "10170656";
+  if (!apiKey) return false;
+
+  try {
+    const res = await fetch(`https://api.kit.com/v3/forms/${formId}/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: apiKey, email }),
+    });
+    if (!res.ok) {
+      console.error("[notify] Kit API responded", res.status);
+      return false;
+    }
+    const data = await res.json().catch(() => null);
+    if (data?.error) {
+      console.error("[notify] Kit API error:", data.error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[notify] Kit API unreachable", err);
+    return false;
+  }
+}
+
+async function forwardToWebhook(email: string): Promise<boolean> {
   const webhook = process.env.NOTIFY_WEBHOOK_URL;
-  if (webhook) {
-    const response = await fetch(webhook, {
+  if (!webhook) return false;
+
+  try {
+    const res = await fetch(webhook, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ email, source: "prelaunch-gate" }),
       redirect: "follow",
     });
-    if (!response.ok) {
-      console.error("[notify] webhook responded", response.status);
+    if (!res.ok) {
+      console.error("[notify] Webhook responded", res.status);
       return false;
     }
     return true;
+  } catch (err) {
+    console.error("[notify] Webhook unreachable", err);
+    return false;
   }
+}
 
+async function forwardToLegacyForm(email: string): Promise<boolean> {
   const formUrl = process.env.NOTIFY_FORM_URL;
-  if (formUrl) {
+  if (!formUrl) return false;
+
+  try {
     const field = process.env.NOTIFY_FORM_EMAIL_FIELD || "email_address";
-    const response = await fetch(formUrl, {
+    const res = await fetch(formUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -61,21 +97,49 @@ async function forward(email: string): Promise<boolean | null> {
       },
       body: new URLSearchParams({ [field]: email }),
     });
-    if (!response.ok) {
-      console.error("[notify] signup form responded", response.status);
+    if (!res.ok) {
+      console.error("[notify] signup form responded", res.status);
       return false;
     }
-    // Some providers answer 200 and put the failure in the body instead.
-    const body: unknown = await response.json().catch(() => null);
+    const body: unknown = await res.json().catch(() => null);
     const status = (body as { status?: unknown } | null)?.status;
     if (status === "failed" || status === "error" || status === "quarantined") {
       console.error("[notify] signup form rejected the address:", status);
       return false;
     }
     return true;
+  } catch (err) {
+    console.error("[notify] signup form unreachable", err);
+    return false;
+  }
+}
+
+/** Hands the address to all configured providers (Kit, Webhook/Sheets). null means none is configured. */
+async function forward(email: string): Promise<boolean | null> {
+  const hasKit = Boolean(process.env.KIT_API_KEY);
+  const hasWebhook = Boolean(process.env.NOTIFY_WEBHOOK_URL);
+  const hasLegacyForm = Boolean(process.env.NOTIFY_FORM_URL) && !hasKit;
+
+  if (!hasKit && !hasWebhook && !hasLegacyForm) {
+    return null;
   }
 
-  return null;
+  const results = await Promise.allSettled([
+    hasKit ? forwardToKit(email) : Promise.resolve(false),
+    hasWebhook ? forwardToWebhook(email) : Promise.resolve(false),
+    hasLegacyForm ? forwardToLegacyForm(email) : Promise.resolve(false),
+  ]);
+
+  const kitSuccess = results[0].status === "fulfilled" && results[0].value;
+  const webhookSuccess = results[1].status === "fulfilled" && results[1].value;
+  const legacySuccess = results[2].status === "fulfilled" && results[2].value;
+
+  // Succeeded if at least one destination processed the submission
+  if (kitSuccess || webhookSuccess || legacySuccess) {
+    return true;
+  }
+
+  return false;
 }
 
 export async function POST(request: Request) {
