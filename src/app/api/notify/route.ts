@@ -35,6 +35,21 @@ function throttled(key: string): boolean {
 
 /** Hands the address to the configured provider. null means none is configured. */
 async function forward(email: string): Promise<boolean | null> {
+  const webhook = process.env.NOTIFY_WEBHOOK_URL;
+  if (webhook) {
+    const response = await fetch(webhook, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ email, source: "prelaunch-gate" }),
+      redirect: "follow",
+    });
+    if (!response.ok) {
+      console.error("[notify] webhook responded", response.status);
+      return false;
+    }
+    return true;
+  }
+
   const formUrl = process.env.NOTIFY_FORM_URL;
   if (formUrl) {
     const field = process.env.NOTIFY_FORM_EMAIL_FIELD || "email_address";
@@ -53,22 +68,8 @@ async function forward(email: string): Promise<boolean | null> {
     // Some providers answer 200 and put the failure in the body instead.
     const body: unknown = await response.json().catch(() => null);
     const status = (body as { status?: unknown } | null)?.status;
-    if (status === "failed" || status === "error") {
-      console.error("[notify] signup form rejected the address");
-      return false;
-    }
-    return true;
-  }
-
-  const webhook = process.env.NOTIFY_WEBHOOK_URL;
-  if (webhook) {
-    const response = await fetch(webhook, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ email, source: "prelaunch-gate" }),
-    });
-    if (!response.ok) {
-      console.error("[notify] provider responded", response.status);
+    if (status === "failed" || status === "error" || status === "quarantined") {
+      console.error("[notify] signup form rejected the address:", status);
       return false;
     }
     return true;
